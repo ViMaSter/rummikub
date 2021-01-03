@@ -1,25 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Meta tags -->
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
   <meta name="viewport" content="width=device-width" />
   <script src="touch-draganddrop.js"></script>
 
-  <!-- Favicon and title -->
-  <link rel="icon" href="path/to/fav.png">
-  <title>Starter template - Halfmoon</title>
+  <title>Rummikub</title>
 
   <!-- Halfmoon CSS -->
   <link href="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/css/halfmoon-variables.min.css" rel="stylesheet" />
-  <!--
-    Or,
-    Use the following (no variables, supports IE11):
-    <link href="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/css/halfmoon.min.css" rel="stylesheet" />
-    Learn more: https://www.gethalfmoon.com/docs/customize/#notes-on-browser-compatibility
-  -->
   <style>
     *::-webkit-scrollbar {
         display: none;
@@ -63,8 +54,14 @@
         border: none !important;
     }
 
-    #inventory .stone {
-        margin-right: 1rem;
+    .buttonwrapper {
+        padding: calc(var(--content-and-card-spacing) * 0.6);
+        margin: calc(var(--content-and-card-spacing) * -0.6);
+    }
+
+    #inventory .buttonwrapper {
+        padding: calc(var(--content-and-card-spacing) * 1.0);
+        margin: calc(var(--content-and-card-spacing) * -0.8);
     }
 
     #inventory {
@@ -102,6 +99,7 @@
     {
         background: rgba(61, 140, 208, 0.13);
     }
+
   </style>
   <script>
         function preventBehavior(e) {
@@ -144,9 +142,6 @@
             button.setAttribute("type", "button");
             button.classList.add("stone", "btn", "text-"+Stone.ColorToClassMapping[this.color]);
             button.innerText = this.number;
-            button.ondrag = () => {
-                console.log(1);
-            }
             button.ondragstart = (ev) => {
                 ev.dataTransfer.setData("stoneID", ev.currentTarget.dataset.id);
 
@@ -173,7 +168,10 @@
             button.onblur = () => {
                 button.setAttribute("draggable", "false");
             };
-            return button;
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("buttonwrapper");
+            wrapper.appendChild(button);
+            return wrapper;
           }
       };
       Stone.IDMapping = {};
@@ -201,10 +199,23 @@
             Row.IDMapping[this.id] = this;
           }
 
-          receiveStone(stone)
+          receiveStone(stone, insertIndex = 0)
           {
+              if (this.id == stone.rowID)
+              {
+                const currentPosition = this.stones.findIndex(stoneItterator => stoneItterator.id == stone.id);
+                const targetPosition = insertIndex;
+                if (currentPosition < targetPosition)
+                {
+                    Row.IDMapping[stone.rowID].removeStone(stone);
+                    this.addStone(stone, insertIndex-1);
+                    stone.rowID = this.id;
+                    return;
+                }
+              }
+
               Row.IDMapping[stone.rowID].removeStone(stone);
-              this.addStone(stone);
+              this.addStone(stone, insertIndex);
               stone.rowID = this.id;
           }
 
@@ -213,9 +224,9 @@
               this.stones = this.stones.filter(stone => stone.id != stoneToRemove.id);
           }
 
-          addStone(stone)
+          addStone(stone, index)
           {
-              this.stones.push(stone);
+              this.stones.splice(index, 0, stone);
           }
 
           createDOM(isInventory)
@@ -224,11 +235,24 @@
             row.classList.add("scroll-row");
             row.dataset.id = this.id;
             row.ondrop = (ev) => {
+                if (document.activeElement == null || !document.activeElement.classList.contains("stone") || !document.activeElement.draggable)
+                {
+                    return;
+                }
+                
+                const row = Row.IDMapping[ev.currentTarget.dataset.id];
+
+                const stones = Array.from(document.elementsFromPoint(ev.clientX, ev.clientY))
+                                    .filter(element => element.classList.contains("buttonwrapper"))
+                                    .map(element => element.querySelector(".stone"))
+                                    .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+
+                let insertIndex = Row.FindInsertPosition(row.stones, stones);
+
                 ev.preventDefault();
                 ev.stopPropagation();
 
-                const row = Row.IDMapping[ev.currentTarget.dataset.id];
-                row.receiveStone(Stone.IDMapping[ev.dataTransfer.getData("stoneID")]);
+                row.receiveStone(Stone.IDMapping[ev.dataTransfer.getData("stoneID")], insertIndex);
 
                 rebuild();
             };
@@ -274,6 +298,34 @@
       }
       Row.IDMapping = {};
       Row.LastRowID = -1;
+      Row.FindInsertPosition = (stonesInRow, hoveredStones) =>
+      {
+        if (hoveredStones.length == 0)
+        {
+            return stonesInRow.length;
+        }
+
+        const leftMostStoneID = hoveredStones[0].dataset.id;
+
+        if (hoveredStones.length == 1)
+        {
+            if (leftMostStoneID == stonesInRow[0].id)
+            {
+                return 0;
+            } 
+            if (leftMostStoneID == stonesInRow[stonesInRow.length-1].id)
+            {
+                return stonesInRow.length;
+            }
+            throw new Exception("Unexpected left-most stone: " + leftMostStoneID);
+        }
+      
+        if (hoveredStones.length == 2)
+        {
+            return stonesInRow.findIndex(stone => stone.id == leftMostStoneID) + 1;
+        }
+        throw new Exception("Unexpected stone length: " + hoveredStones.length);
+      };
   </script>
 </head>
 <body class="with-custom-webkit-scrollbars with-custom-css-scrollbars" data-set-preferred-mode-onload="true">
@@ -285,9 +337,7 @@
         <div id="playingfield" class="container-fluid" ondragover="allowDrop(event)">
         </div>
 
-        <div id="inventory" class="container-fluid">
-            <div class="card">
-            </div>
+        <div id="inventory" class="card container-fluid">
         </div>
     </div>
     <!-- Content wrapper end -->
@@ -335,7 +385,7 @@
     const rebuild = () => {
         deleteEmptyRows();
 
-        const inventoryRowContainer = document.querySelector("#inventory .card");
+        const inventoryRowContainer = document.querySelector("#inventory");
         inventoryRowContainer.innerHTML = "";
         inventory.forEach(stone => {
             inventoryRowContainer.appendChild(stone.createDOM(true));
