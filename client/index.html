@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Meta tags -->
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+  <meta name="viewport" content="width=device-width" />
+  <script src="touch-draganddrop.js"></script>
+
+  <!-- Favicon and title -->
+  <link rel="icon" href="path/to/fav.png">
+  <title>Starter template - Halfmoon</title>
+
+  <!-- Halfmoon CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/css/halfmoon-variables.min.css" rel="stylesheet" />
+  <!--
+    Or,
+    Use the following (no variables, supports IE11):
+    <link href="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/css/halfmoon.min.css" rel="stylesheet" />
+    Learn more: https://www.gethalfmoon.com/docs/customize/#notes-on-browser-compatibility
+  -->
+  <style>
+    *::-webkit-scrollbar {
+        display: none;
+    }
+    * {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    html, body {
+        overscroll-behavior: none;
+    }
+
+    .stone {
+        padding: 0.5rem 1.5rem 2.5rem 1.5rem;
+        height: auto;
+        position: relative;
+        background-size: 3.0rem;
+        background-position: center 0.75rem;
+        background-repeat: no-repeat;
+        z-index: 0;
+    }
+
+    .stone::after {
+        content: '';
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 2rem;
+        display: block;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 1rem;
+        z-index: -100;
+        border: var(--card-border-width) solid var(--lm-card-border-color);
+    }
+
+    .dark-mode .stone::after {
+        opacity: 0.5 !important;
+        background: black;
+        border: none !important;
+    }
+
+    #inventory .stone {
+        margin-right: 1rem;
+    }
+
+    #inventory {
+        position: fixed;
+        bottom: 0;
+    }
+
+    #playingfield .stone {
+        margin-right: 0;
+    }
+
+    #playingfield {
+        width: 200vw;
+        height: 200vh;
+    }
+
+    .scroll-row
+    {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: -ms-flexbox;
+        display: flex;
+        overflow-x: scroll;
+    }
+
+    /* touch target area helper for rows */
+    .scroll-row
+    {
+        padding: 2rem;
+        margin-left: -2rem;
+        margin-top: -2rem;
+    }
+
+    .drag-in-progress .scroll-row
+    {
+        background: rgba(61, 140, 208, 0.13);
+    }
+  </style>
+  <script>
+        function preventBehavior(e) {
+            if (e.target == document.getElementById("playingfield"))
+            {
+                return;
+            }
+            if (e.target == document.getElementById("inventory"))
+            {
+                return;
+            }
+            if (e.target.parentNode.parentNode.parentNode == document.getElementById("inventory"))
+            {
+                return;
+            }
+            e.preventDefault(); 
+        };
+        document.addEventListener("touchmove", preventBehavior, {passive: false});
+
+        const allowDrop = (ev) => {
+            ev.preventDefault();
+        }
+  </script>
+  <script>
+      class Stone
+      {
+          constructor(id, color, number)
+          {
+            this.id = id;
+            this.color = color;
+            this.number = number;
+            this.rowID = null;
+            Stone.IDMapping[this.id] = this;
+          }
+
+          createDOM()
+          {
+            const button = document.createElement("button");
+            button.dataset.id = this.id;
+            button.setAttribute("type", "button");
+            button.classList.add("stone", "btn", "text-"+Stone.ColorToClassMapping[this.color]);
+            button.innerText = this.number;
+            button.ondrag = () => {
+                console.log(1);
+            }
+            button.ondragstart = (ev) => {
+                ev.dataTransfer.setData("stoneID", ev.currentTarget.dataset.id);
+
+                var stoneBoundings = ev.target.getBoundingClientRect();
+                var x = ev.pageX - stoneBoundings.left;
+                var y = ev.pageY - stoneBoundings.top;
+
+                ev.dataTransfer.setData("offsetX", x);
+                ev.dataTransfer.setData("offsetY", y);
+
+                document.body.classList.add("drag-in-progress");
+            };
+            button.ondragend = (ev) => {
+                document.body.classList.remove("drag-in-progress");
+                event.preventDefault();
+                event.stopPropagation();
+            };
+            button.onclick = () => {
+                button.setAttribute("draggable", "true");
+            };
+            button.ontouch = () => {
+                button.setAttribute("draggable", "true");
+            };
+            button.onblur = () => {
+                button.setAttribute("draggable", "false");
+            };
+            return button;
+          }
+      };
+      Stone.IDMapping = {};
+      Stone.ColorToClassMapping = {
+          "red": "danger",
+          "yellow": "secondary",
+          "blue": "primary",
+          "black": "very-dark"
+      };
+
+      class Row
+      {
+          constructor(id, stones, x, y)
+          {
+            this.id = id;
+            this.stones = stones;
+            this.x = x;
+            this.y = y;
+
+            this.stones.forEach(stone => {
+                stone.rowID = this.id;
+            });
+            
+            Row.LastRowID = this.id > Row.LastRowID ? this.id : Row.LastRowID;
+            Row.IDMapping[this.id] = this;
+          }
+
+          receiveStone(stone)
+          {
+              Row.IDMapping[stone.rowID].removeStone(stone);
+              this.addStone(stone);
+              stone.rowID = this.id;
+          }
+
+          removeStone(stoneToRemove)
+          {
+              this.stones = this.stones.filter(stone => stone.id != stoneToRemove.id);
+          }
+
+          addStone(stone)
+          {
+              this.stones.push(stone);
+          }
+
+          createDOM(isInventory)
+          {
+            const row = document.createElement("div");
+            row.classList.add("scroll-row");
+            row.dataset.id = this.id;
+            row.ondrop = (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+
+                const row = Row.IDMapping[ev.currentTarget.dataset.id];
+                row.receiveStone(Stone.IDMapping[ev.dataTransfer.getData("stoneID")]);
+
+                rebuild();
+            };
+            row.ondragover = allowDrop;
+            if (!isInventory)
+            {
+                row.setAttribute("draggable", "true");
+            }
+
+            let lastDragStart = [];
+            row.ondragstart = (ev) => {
+                if (document.activeElement != null && document.activeElement.classList.contains("stone") && document.activeElement.draggable)
+                {
+                    return;
+                }
+
+                lastDragStart = [ev.pageX, ev.pageY];
+            };
+            row.ondragend = (ev) => {
+                if (document.activeElement != null && document.activeElement.classList.contains("stone") && document.activeElement.draggable)
+                {
+                    return;
+                }
+
+                const offset = [ev.pageX - lastDragStart[0], ev.pageY - lastDragStart[1]];
+
+                const affectedRow = Row.IDMapping[ev.currentTarget.dataset.id];
+                affectedRow.x += offset[0];
+                affectedRow.y += offset[1];
+                rebuild();
+            };
+            this.stones.forEach(stone => {
+                row.appendChild(stone.createDOM());
+            });
+            if (!isInventory)
+            {
+                row.style.position = "absolute";
+                row.style.left = this.x+"px";
+                row.style.top = this.y+"px";
+            }
+            return row;
+          }
+      }
+      Row.IDMapping = {};
+      Row.LastRowID = -1;
+  </script>
+</head>
+<body class="with-custom-webkit-scrollbars with-custom-css-scrollbars" data-set-preferred-mode-onload="true">
+  <!-- Page wrapper start -->
+  <div class="page-wrapper">
+
+    <!-- Content wrapper start -->
+    <div class="content-wrapper">
+        <div id="playingfield" class="container-fluid" ondragover="allowDrop(event)">
+        </div>
+
+        <div id="inventory" class="container-fluid">
+            <div class="card">
+            </div>
+        </div>
+    </div>
+    <!-- Content wrapper end -->
+
+  </div>
+  <!-- Page wrapper end -->
+
+  <!-- Halfmoon JS -->
+  <script src="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/js/halfmoon.min.js"></script>
+  <script>
+    const inventory = [
+        new Row(2222222223, [
+            new Stone(1111111112, "yellow", 1),
+            new Stone(1111111113, "blue", 2),
+            new Stone(1111111114, "black", 3),
+            new Stone(1111111115, "red", 4),
+            new Stone(1111111116, "yellow", 5),
+            new Stone(1111111117, "blue", 6),
+            new Stone(1111111118, "black", 7),
+            new Stone(1111111119, "red", 8),
+            new Stone(1111111120, "yellow", 9),
+            new Stone(1111111121, "blue", 10),
+            new Stone(1111111123, "black", 11),
+            new Stone(1111111124, "red", 12)
+        ], 0, 0)
+    ];
+    let map = [
+        new Row(2222222224, [
+            new Stone(1111111125, "black", 10),
+            new Stone(1111111126, "black", 11),
+            new Stone(1111111127, "black", 12)
+        ], 20, 20),
+        new Row(2222222225, [
+            new Stone(1111111128, "red", 4),
+            new Stone(1111111129, "yellow", 4),
+            new Stone(1111111130, "blue", 4)
+        ], 300, 75)
+    ];
+
+    const deleteEmptyRows = () =>
+    {
+        map = map.filter(row => row.stones.length > 0);
+    };
+
+    const rebuild = () => {
+        deleteEmptyRows();
+
+        const inventoryRowContainer = document.querySelector("#inventory .card");
+        inventoryRowContainer.innerHTML = "";
+        inventory.forEach(stone => {
+            inventoryRowContainer.appendChild(stone.createDOM(true));
+        });
+        
+        const playingfieldRowContainer = document.querySelector("#playingfield");
+        playingfieldRowContainer.innerHTML = "";
+        map.forEach(group => {
+            playingfieldRowContainer.appendChild(group.createDOM(false));
+        });
+    };
+    
+    document.getElementById("playingfield").ondrop = (ev) => {
+        if (document.activeElement == null || !document.activeElement.classList.contains("stone") || !document.activeElement.draggable)
+        {
+            return;
+        }
+
+        var stoneBoundings = ev.target.getBoundingClientRect();
+        var x = ev.pageX - stoneBoundings.left - ev.dataTransfer.getData("offsetX");
+        var y = ev.pageY - stoneBoundings.top - ev.dataTransfer.getData("offsetY");
+
+        const newRow = new Row(++Row.LastRowID, [], x, y);
+        newRow.receiveStone(Stone.IDMapping[ev.dataTransfer.getData("stoneID")]);
+        map.push(newRow);
+
+        rebuild();
+    };
+
+    window.addEventListener("load", () => {
+        rebuild();
+    });
+  </script>
+</body>
+</html>
