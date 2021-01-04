@@ -83,11 +83,17 @@
         const rebuild = () => {
             deleteEmptyRows();
 
+            let currentRowScroll = Array.from(document.querySelectorAll("#inventory .scroll-row")).map(row => row.scrollLeft);
             const inventoryRowContainer = document.querySelector("#inventory");
             inventoryRowContainer.innerHTML = "";
-            inventory.forEach(stone => {
-                inventoryRowContainer.appendChild(stone.createDOM(true));
-            });
+            for (let i = 0; i < inventory.length; ++i) {
+                const row = inventory[i];
+                const rowElement = row.createDOM(true);
+                inventoryRowContainer.appendChild(rowElement);
+                if (currentRowScroll[i]) {
+                    rowElement.scrollTo(currentRowScroll[i], 0);
+                }
+            }
 
             const playingfieldRowContainer = document.querySelector("#playingfield");
             playingfieldRowContainer.innerHTML = "";
