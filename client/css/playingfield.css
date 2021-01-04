@@ -54,6 +54,8 @@ html, body {
 #inventory {
     position: fixed;
     bottom: 0;
+    padding: 1rem;
+    overflow: hidden;
 }
 
 #playingfield .stone {
@@ -65,20 +67,41 @@ html, body {
     height: 200vh;
 }
 
+.dark-mode #inventory .scroll-row:last-child {
+    border-top: 3px solid var(--dm-card-border-color);
+}
+
+#inventory .scroll-row:last-child {
+    border-top: 3px solid var(--lm-card-border-color);
+}
+
 .scroll-row {
     display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
     overflow-x: scroll;
+    min-height: 121px;
 }
 
 /* touch target area helper for rows */
 
 .scroll-row {
+    padding: 2rem;
     margin-left: -2rem;
     margin-top: -2rem;
     overflow-y: hidden;
+}
+
+#inventory .scroll-row {
+    margin: -2rem !important;
+}
+
+#inventory .scroll-row .buttonwrapper:last-child::after {
+    content: '';
+    width: 20rem !important;
+    pointer-events: none;
+    display: block;
 }
 
 .drag-in-progress .scroll-row {
@@ -87,13 +110,13 @@ html, body {
 
 #pullFromBag {
     position: fixed;
-    bottom: 250px;
+    top: 75px;
     right: 20px;
 }
 
 #toggleTheme {
     position: fixed;
-    bottom: 300px;
+    top: 25px;
     right: 20px;
 }
 

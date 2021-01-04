@@ -37,12 +37,15 @@
     <script>
         const bag = [];
         const numbersPerColor = [1, 13];
+        const numberDuplicates = 2;
         const amountOfJokers = 2;
         const startStonesPerPlayer = 14;
         let stoneID = -1;
-        for (const color in Stone.ColorToClassMapping) {
-            for (let i = numbersPerColor[0]; i <= numbersPerColor[1]; ++i) {
-                bag.push(new Stone(++stoneID, color, i));
+        for (let duplicates = 0; duplicates < numberDuplicates; ++duplicates) {
+            for (const color in Stone.ColorToClassMapping) {
+                for (let i = numbersPerColor[0]; i <= numbersPerColor[1]; ++i) {
+                    bag.push(new Stone(++stoneID, color, i));
+                }
             }
         }
 
@@ -52,10 +55,21 @@
         bag.shuffle();
 
         const pullFromBag = () => {
-            inventory[0].receiveStone(bag.pop(), inventory[0].stones.length);
+            if (bag.length <= 0) {
+                return;
+            }
+            const targetInventory = inventory[1].stones.length > inventory[0].stones.length ? inventory[0] : inventory[1];
+            targetInventory.receiveStone(bag.pop(), targetInventory.stones.length);
+            console.log("left in bag (%d): %O", bag.length, bag);
+
+            if (bag.length <= 0) {
+                document.getElementById("pullFromBag").disabled = true;
+            }
         };
 
         const inventory = [
+            new Row(++Row.LastRowID, [
+            ], 0, 0),
             new Row(++Row.LastRowID, [
             ], 0, 0)
         ];
