@@ -1,0 +1,106 @@
+*::-webkit-scrollbar {
+    display: none;
+}
+
+* {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+html, body {
+    overscroll-behavior: none;
+}
+
+.stone {
+    padding: 0.5rem 1.5rem 2.5rem 1.5rem;
+    height: auto;
+    position: relative;
+    background-size: 3.0rem;
+    background-position: center 0.75rem;
+    background-repeat: no-repeat;
+    z-index: 0;
+}
+
+.stone::after {
+    content: '';
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 2rem;
+    display: block;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 1rem;
+    z-index: -100;
+    border: var(--card-border-width) solid var(--lm-card-border-color);
+}
+
+.dark-mode .stone::after {
+    opacity: 0.5 !important;
+    background: black;
+    border: none !important;
+}
+
+.buttonwrapper {
+    padding: calc(var(--content-and-card-spacing) * 0.6);
+    margin: calc(var(--content-and-card-spacing) * -0.6);
+}
+
+#inventory .buttonwrapper {
+    padding: calc(var(--content-and-card-spacing) * 1.0);
+    margin: calc(var(--content-and-card-spacing) * -0.8);
+}
+
+#inventory {
+    position: fixed;
+    bottom: 0;
+}
+
+#playingfield .stone {
+    margin-right: 0;
+}
+
+#playingfield {
+    width: 200vw;
+    height: 200vh;
+}
+
+.scroll-row {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    overflow-x: scroll;
+}
+
+/* touch target area helper for rows */
+
+.scroll-row {
+    margin-left: -2rem;
+    margin-top: -2rem;
+    overflow-y: hidden;
+}
+
+.drag-in-progress .scroll-row {
+    background: rgba(61, 140, 208, 0.13);
+}
+
+#pullFromBag {
+    position: fixed;
+    bottom: 250px;
+    right: 20px;
+}
+
+#toggleTheme {
+    position: fixed;
+    bottom: 300px;
+    right: 20px;
+}
+
+body:not(.dark-mode) .stone {
+    background-color: #fffae3 !important;
+}
+
+body:not(.dark-mode) .text-secondary {
+    color: #debe36 !important;
+}
