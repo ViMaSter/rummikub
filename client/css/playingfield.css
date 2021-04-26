@@ -120,6 +120,12 @@ html, body {
     right: 20px;
 }
 
+#restartSession {
+    position: fixed;
+    top: 125px;
+    right: 20px;
+}
+
 body:not(.dark-mode) .stone {
     background-color: #fffae3 !important;
 }

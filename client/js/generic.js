@@ -26,3 +26,18 @@ Array.prototype.shuffle = function () {
         this[j] = temp;
     }
 }
+
+location.hashObject = Object.fromEntries(location.hash
+    .substring(1, location.hash.length)
+    .split("&")
+    .map(entry => entry.split("="))
+    .filter(entry => entry.length > 1)
+);
+
+window.addEventListener('error', (event) => {
+    console.log(event.data, event.stack);
+    alert("Fehlercode: " + event.code);
+    setTimeout(() => {
+        location.reload();
+    }, 5000);
+})

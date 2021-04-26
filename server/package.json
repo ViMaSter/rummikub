@@ -1,0 +1,14 @@
+{
+  "name": "rummikub_server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vincent Mahnke (vincent@mahn.ke)",
+  "license": "ISC",
+  "dependencies": {
+    "sessionserver": "^0.2.5"
+  }
+}

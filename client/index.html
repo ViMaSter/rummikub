@@ -15,6 +15,9 @@
     <script type="text/javascript" src="js/generic.js"></script>
     <script type="text/javascript" src="js/stone.js"></script>
     <script type="text/javascript" src="js/row.js"></script>
+    <script type="text/javascript" src="js/gameData.js"></script>
+    <script type="text/javascript" src="js/localGameData.js"></script>
+    <script type="text/javascript" src="js/remoteGameData.js"></script>
 </head>
 
 <body class="with-custom-webkit-scrollbars with-custom-css-scrollbars" data-set-preferred-mode-onload="true">
@@ -23,11 +26,15 @@
             <div id="playingfield" class="container-fluid" ondragover="allowDrop(event)">
             </div>
 
-            <button class="btn" id="pullFromBag" onclick="event.preventDefault(); pullFromBag(); rebuild();">Pull
-                card</button>
-            <button class="btn btn-primary" id="toggleTheme"
-                onclick="document.body.classList.toggle('dark-mode');">Toggle
-                theme</button>
+            <button class="btn btn-danger" id="restartSession" onclick="game.restartSession();">
+                Restart session
+            </button>
+            <button class="btn" id="pullFromBag" onclick="event.preventDefault(); game.pullFromBag(); rebuild();">
+                Pull card
+            </button>
+            <button class="btn btn-primary" id="toggleTheme" onclick="document.body.classList.toggle('dark-mode');">
+                Toggle theme
+            </button>
 
             <div id="inventory" class="card container-fluid">
             </div>
@@ -35,24 +42,14 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/js/halfmoon.min.js"></script>
     <script>
-        const bag = [];
+        let bag = null;
+        let inventory = null;
+        let map = null;
+
         const numbersPerColor = [1, 13];
         const numberDuplicates = 2;
         const amountOfJokers = 2;
         const startStonesPerPlayer = 14;
-        let stoneID = -1;
-        for (let duplicates = 0; duplicates < numberDuplicates; ++duplicates) {
-            for (const color in Stone.ColorToClassMapping) {
-                for (let i = numbersPerColor[0]; i <= numbersPerColor[1]; ++i) {
-                    bag.push(new Stone(++stoneID, color, i));
-                }
-            }
-        }
-
-        bag.push(new Stone(++stoneID, "red", "☺"));
-        bag.push(new Stone(++stoneID, "black", "☺"));
-
-        bag.shuffle();
 
         const pullFromBag = () => {
             if (bag.length <= 0) {
@@ -67,14 +64,6 @@
             }
         };
 
-        const inventory = [
-            new Row(++Row.LastRowID, [
-            ], 0, 0),
-            new Row(++Row.LastRowID, [
-            ], 0, 0)
-        ];
-
-        let map = [];
 
         const deleteEmptyRows = () => {
             map = map.filter(row => row.stones.length > 0);
@@ -103,12 +92,53 @@
         };
 
         window.addEventListener("load", () => {
+            restartSession();
             for (let i = 0; i < startStonesPerPlayer; ++i) {
                 pullFromBag();
             }
 
             rebuild();
         });
+    </script>
+    <script>
+        const restartSession = () => {
+            bag = [];
+            inventory = [];
+            map = [];
+
+            let stoneID = -1;
+            for (let duplicates = 0; duplicates < numberDuplicates; ++duplicates) {
+                for (const color in Stone.ColorToClassMapping) {
+                    for (let i = numbersPerColor[0]; i <= numbersPerColor[1]; ++i) {
+                        bag.push(new Stone(++stoneID, color, i));
+                    }
+                }
+            }
+
+            bag.push(new Stone(++stoneID, "red", "☺"));
+            bag.push(new Stone(++stoneID, "black", "☺"));
+
+            bag.shuffle();
+
+            inventory.push(new Row(++Row.LastRowID, [], 0, 0));
+            inventory.push(new Row(++Row.LastRowID, [], 0, 0));
+        };
+
+        const playerName = location.hashObject.playerName;
+
+        if (location.hash.includes("local")) {
+            const game = new Game(playerName);
+        }
+        if (!location.hash.includes("admin")) {
+            document.getElementById("restartSession").remove();
+        }
+
+        const sessionID = location.hashObject.sessionID;
+
+        //const game = new RemoteGameData("hetzner.mahn.ke", 7000, playerName, sessionID);
+
+        const game = new LocalGameData();
+
     </script>
 </body>
 
